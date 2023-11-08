@@ -98,6 +98,7 @@ public class MainWindowController {
         alert.showAndWait();
     }
 
+
     private String convertInvoiceToString(Invoice invoice) {
         return String.format(
                 "Invoice,%s,%s,%s,%s,%s,%s,%s,%s%n",
@@ -221,7 +222,6 @@ public class MainWindowController {
                 new BigDecimal(data[9])
         );
     }
-
 
     @FXML
     private void handleViewAction(ActionEvent event) {

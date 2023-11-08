@@ -21,7 +21,6 @@ public class DocumentListController {
 
     public void initialize() {
         documentListView.setItems(documentList);
-        documentListView.setDisable(true);
     }
 
     public void updateDocumentListView(List<DisplayableDocument> documents) {

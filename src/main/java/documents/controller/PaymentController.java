@@ -1,7 +1,5 @@
 package documents.controller;
 
-import documents.listener.DocumentCreationListener;
-import documents.listener.DocumentCreationListenerAware;
 import jakarta.annotation.PostConstruct;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
@@ -29,8 +27,8 @@ import java.util.Scanner;
 
 @Component
 @Scope("prototype")
-@FxmlView("view/payment.fxml")
-public class PaymentController implements DocumentCreationListenerAware {
+@FxmlView("payment.fxml")
+public class PaymentController {
 
     @FXML
     private TextField numberField;
@@ -47,7 +45,6 @@ public class PaymentController implements DocumentCreationListenerAware {
     @FXML
     private Button okButton;
 
-    private DocumentCreationListener creationListener;
     @Autowired
     private DocumentListController documentListController;
     @Autowired
@@ -60,15 +57,10 @@ public class PaymentController implements DocumentCreationListenerAware {
         loadAllPayments();
     }
 
-    public void setCreationListener(DocumentCreationListener listener) {
-        this.creationListener = listener;
-    }
-
     private void loadAllPayments() {
         List<Payment> payments = paymentService.getAllPayments();
         payments.forEach(payment ->
                 documentListController.addDocument(payment));
-
     }
 
     @FXML
@@ -84,11 +76,10 @@ public class PaymentController implements DocumentCreationListenerAware {
 
             payment = paymentService.createPayment(payment);
 
-            if (this.creationListener != null) {
-                this.creationListener.onDocumentCreated(payment);
-            }
+            // Добавляем созданный платеж в список документов в главном меню
             documentListController.addDocument(payment);
 
+            // Получаем текущее окно и закрываем его
             Stage stage = (Stage) okButton.getScene().getWindow();
             stage.close();
 
@@ -107,8 +98,7 @@ public class PaymentController implements DocumentCreationListenerAware {
     }
 
     private String formatPaymentDisplayName(Payment payment) {
-        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd.MM.yyyy");
-        return String.format("Платежка от %s номер %s", payment.getDate().format(formatter), payment.getNumber());
+        return String.format("%s - %s", payment.getId(), payment.getDate().format(DateTimeFormatter.ISO_DATE));
     }
 
     @FXML

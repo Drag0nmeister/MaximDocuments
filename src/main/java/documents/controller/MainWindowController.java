@@ -1,10 +1,5 @@
 package documents.controller;
 
-import documents.listener.DocumentCreationListener;
-import documents.listener.DocumentCreationListenerAware;
-import documents.service.InvoiceService;
-import documents.service.PaymentOrderService;
-import documents.service.PaymentService;
 import javafx.application.Platform;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
@@ -13,11 +8,7 @@ import javafx.scene.Node;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.scene.control.Alert;
-import javafx.scene.control.CheckBox;
-import javafx.scene.control.Label;
-import javafx.scene.control.ListCell;
 import javafx.scene.control.ListView;
-import javafx.scene.layout.HBox;
 import javafx.stage.FileChooser;
 import javafx.stage.Stage;
 import documents.model.DisplayableDocument;
@@ -29,34 +20,17 @@ import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Component;
 
-import java.io.BufferedReader;
-import java.io.File;
-import java.io.FileReader;
-import java.io.FileWriter;
-import java.io.IOException;
+import java.io.*;
 import java.math.BigDecimal;
 import java.time.LocalDate;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
-import java.util.stream.Collectors;
 
 @Component
 @Scope("prototype")
-public class MainWindowController implements DocumentCreationListener {
+public class MainWindowController {
 
     @Autowired
-    private ConfigurableApplicationContext context;
+    private final ConfigurableApplicationContext context;
     private DisplayableDocument currentDocument;
-
-    @Autowired
-    private InvoiceService invoiceService;
-    @Autowired
-    private PaymentOrderService paymentOrderService;
-    @Autowired
-    private PaymentService paymentService;
-    private DocumentDetailsController documentDetailsController;
 
     @Autowired
     private DocumentListController documentListController;
@@ -71,77 +45,17 @@ public class MainWindowController implements DocumentCreationListener {
 
     @FXML
     private void handleInvoiceAction(ActionEvent event) {
-        loadWindow("/view/invoice.fxml", "Счет");
+        loadWindow("/invoice.fxml", "Счет");
     }
 
     @FXML
     private void handlePaymentAction(ActionEvent event) {
-        loadWindow("/view/payment.fxml", "Платеж");
-    }
-
-    @FXML
-    public void initialize() {
-        setupDocumentListView();
-    }
-
-    @Override
-    public void onDocumentCreated(DisplayableDocument document) {
-        Platform.runLater(() -> {
-            documentListView.getItems().add(document);
-            documentListView.getSelectionModel().select(document);
-        });
-    }
-
-    private void loadDocuments() {
-        List<DisplayableDocument> invoices = new ArrayList<>(invoiceService.getAllInvoices());
-        List<DisplayableDocument> paymentOrders = new ArrayList<>(paymentOrderService.getAllPaymentOrders());
-        List<DisplayableDocument> payments = new ArrayList<>(paymentService.getAllPayments());
-        List<DisplayableDocument> allDocuments = new ArrayList<>();
-        allDocuments.addAll(invoices);
-        allDocuments.addAll(paymentOrders);
-        allDocuments.addAll(payments);
-
-        documentListView.getItems().setAll(allDocuments);
-    }
-
-    private void displayDocumentDetails(DisplayableDocument document) {
-        if (documentDetailsController != null) {
-            documentDetailsController.setCurrentDocument(document);
-        }
-    }
-
-    private void setupDocumentListView() {
-        documentListView.setCellFactory(param -> new ListCell<DisplayableDocument>() {
-            @Override
-            protected void updateItem(DisplayableDocument document, boolean empty) {
-                super.updateItem(document, empty);
-                if (empty || document == null) {
-                    setText(null);
-                    setGraphic(null);
-                } else {
-                    HBox container = new HBox(10);
-                    CheckBox checkBox = new CheckBox();
-                    Label label = new Label(document.getDisplayText());
-                    container.getChildren().addAll(checkBox, label);
-                    setGraphic(container);
-                }
-            }
-        });
-
-        documentListView.getSelectionModel().selectedItemProperty().addListener(
-                (observable, oldValue, newValue) -> {
-                    if (newValue != null) {
-                        currentDocument = newValue;
-                        displayDocumentDetails(newValue);
-                    }
-                });
-
-        loadDocuments();
+        loadWindow("/payment.fxml", "Платеж");
     }
 
     @FXML
     private void handlePaymentOrderAction(ActionEvent event) {
-        loadWindow("/view/paymentOrder.fxml", "Платежное поручение");
+        loadWindow("/paymentOrder.fxml", "Платежное поручение");
     }
 
     @FXML
@@ -184,42 +98,46 @@ public class MainWindowController implements DocumentCreationListener {
         alert.showAndWait();
     }
 
-
     private String convertInvoiceToString(Invoice invoice) {
-        return "Накладная" + "\n" +
-                "ID: " + invoice.getId() + "\n" +
-                "Номер: " + invoice.getNumber() + "\n" +
-                "Дата: " + invoice.getDate().toString() + "\n" +
-                "Пользователь: " + invoice.getUser() + "\n" +
-                "Сумма: " + invoice.getAmount() + "\n" +
-                "Валюта: " + invoice.getCurrency() + "\n" +
-                "Курс валюты: " + invoice.getCurrencyRate() + "\n" +
-                "Товар: " + invoice.getProduct() + "\n" +
-                "Количество: " + invoice.getQuantity() + "\n";
+        return String.format(
+                "Invoice,%s,%s,%s,%s,%s,%s,%s,%s%n",
+                invoice.getId(),
+                invoice.getNumber(),
+                invoice.getDate(),
+                invoice.getUser(),
+                invoice.getAmount(),
+                invoice.getCurrency(),
+                invoice.getCurrencyRate(),
+                invoice.getProduct(),
+                invoice.getQuantity()
+        );
     }
 
     private String convertPaymentToString(Payment payment) {
-        return "Платёжка" + "\n" +
-                "ID: " + payment.getId() + "\n" +
-                "Номер: " + payment.getNumber() + "\n" +
-                "Дата: " + payment.getDate().toString() + "\n" +
-                "Пользователь: " + payment.getUser() + "\n" +
-                "Сумма: " + payment.getAmount() + "\n" +
-                "Сотрудник: " + payment.getEmployee() + "\n";
+        return String.format(
+                "Payment,%s,%s,%s,%s,%s,%s%n",
+                payment.getId(),
+                payment.getNumber(),
+                payment.getDate(),
+                payment.getUser(),
+                payment.getAmount(),
+                payment.getEmployee()
+        );
     }
 
-
     private String convertPaymentOrderToString(PaymentOrder paymentOrder) {
-        return "Заявка на оплату" + "\n" +
-                "ID: " + paymentOrder.getId() + "\n" +
-                "Номер: " + paymentOrder.getNumber() + "\n" +
-                "Дата: " + paymentOrder.getDate().toString() + "\n" +
-                "Пользователь: " + paymentOrder.getUser() + "\n" +
-                "Контрагент: " + paymentOrder.getContractor() + "\n" +
-                "Сумма: " + paymentOrder.getAmount() + "\n" +
-                "Валюта: " + paymentOrder.getCurrency() + "\n" +
-                "Курс Валюты: " + paymentOrder.getCurrencyRate() + "\n" +
-                "Комиссия: " + paymentOrder.getCommission() + "\n";
+        return String.format(
+                "PaymentOrder,%s,%s,%s,%s,%s,%s,%s,%s,%s%n",
+                paymentOrder.getId(),
+                paymentOrder.getNumber(),
+                paymentOrder.getDate(),
+                paymentOrder.getUser(),
+                paymentOrder.getContractor(),
+                paymentOrder.getAmount(),
+                paymentOrder.getCurrency(),
+                paymentOrder.getCurrencyRate(),
+                paymentOrder.getCommission()
+        );
     }
 
     @FXML
@@ -236,131 +154,78 @@ public class MainWindowController implements DocumentCreationListener {
 
     private void loadDocumentFromFile(File file) {
         try (BufferedReader reader = new BufferedReader(new FileReader(file))) {
-            StringBuilder blockBuilder = new StringBuilder();
             String line;
             while ((line = reader.readLine()) != null) {
-                blockBuilder.append(line).append("\n");
+                DisplayableDocument document = null;
+                if (line.startsWith("Invoice,")) {
+                    document = parseInvoice(line);
+                } else if (line.startsWith("Payment,")) {
+                    document = parsePayment(line);
+                } else if (line.startsWith("PaymentOrder,")) {
+                    document = parsePaymentOrder(line);
+                }
+                if (document != null) {
+                    final DisplayableDocument finalDocument = document;
+                    Platform.runLater(() -> {
+                        documentListController.addDocument(finalDocument);
+                        documentListView.getSelectionModel().select(finalDocument);
+                    });
+                }
             }
-            String block = blockBuilder.toString();
-            processDocumentBlock(block);
         } catch (IOException e) {
             e.printStackTrace();
         }
     }
 
-    private void processDocumentBlock(String block) {
-        String[] lines = block.split("\n");
-        String documentType = lines[0];
-        DisplayableDocument document = null;
-
-        if ("Накладная".equals(documentType)) {
-            document = parseInvoice(block.substring(documentType.length() + 1));
-            if (document != null) {
-                invoiceService.saveInvoice((Invoice) document);
-            }
-        } else if ("Платёжка".equals(documentType)) {
-            document = parsePayment(block.substring(documentType.length() + 1));
-            if (document != null) {
-                paymentService.savePayment((Payment) document);
-            }
-        } else if ("Заявка на оплату".equals(documentType)) {
-            document = parsePaymentOrder(block.substring(documentType.length() + 1));
-            if (document != null) {
-                paymentOrderService.savePaymentOrder((PaymentOrder) document);
-            }
-        }
-        if (document != null) {
-            final DisplayableDocument finalDocument = document;
-            Platform.runLater(() -> {
-                documentListController.addDocument(finalDocument);
-                documentListView.getItems().add(finalDocument);
-                documentListView.getSelectionModel().select(finalDocument);
-            });
-        }
-    }
-
-    private Invoice parseInvoice(String block) {
-        Map<String, String> dataMap = Arrays.stream(block.split("\n"))
-                .map(line -> line.split(": "))
-                .collect(Collectors.toMap(parts -> parts[0].trim(), parts -> parts[1].trim()));
-
+    private Invoice parseInvoice(String line) {
+        String[] data = line.split(",");
+        if (!"Invoice".equals(data[0])) return null;
         return new Invoice(
-                Integer.parseInt(dataMap.get("ID")),
-                dataMap.get("Номер"),
-                LocalDate.parse(dataMap.get("Дата")),
-                dataMap.get("Пользователь"),
-                new BigDecimal(dataMap.get("Сумма")),
-                dataMap.get("Валюта"),
-                new BigDecimal(dataMap.get("Курс валюты")),
-                dataMap.get("Товар"),
-                new BigDecimal(dataMap.get("Количество"))
+                Integer.parseInt(data[1]),
+                data[2],
+                LocalDate.parse(data[3]),
+                data[4],
+                new BigDecimal(data[5]),
+                data[6],
+                new BigDecimal(data[7]),
+                data[8],
+                new BigDecimal(data[9])
         );
     }
 
-    private Payment parsePayment(String block) {
-        Map<String, String> dataMap = Arrays.stream(block.split("\n"))
-                .map(line -> line.split(": "))
-                .collect(Collectors.toMap(parts -> parts[0].trim(), parts -> parts[1].trim()));
-
+    private Payment parsePayment(String line) {
+        String[] data = line.split(",");
+        if (!"Payment".equals(data[0])) return null;
         return new Payment(
-                Integer.parseInt(dataMap.get("ID")),
-                dataMap.get("Номер"),
-                LocalDate.parse(dataMap.get("Дата")),
-                dataMap.get("Пользователь"),
-                new BigDecimal(dataMap.get("Сумма")),
-                dataMap.get("Сотрудник")
+                Integer.parseInt(data[1]),
+                data[2],
+                LocalDate.parse(data[3]),
+                data[4],
+                new BigDecimal(data[5]),
+                data[6]
         );
     }
 
-    private PaymentOrder parsePaymentOrder(String block) {
-        Map<String, String> dataMap = Arrays.stream(block.split("\n"))
-                .map(line -> line.split(": "))
-                .collect(Collectors.toMap(
-                        parts -> parts[0].trim(),
-                        parts -> parts.length > 1 ? parts[1].trim() : null
-                ));
-
+    private PaymentOrder parsePaymentOrder(String line) {
+        String[] data = line.split(",");
+        if (!"PaymentOrder".equals(data[0])) return null;
         return new PaymentOrder(
-                Integer.parseInt(dataMap.get("ID")),
-                dataMap.get("Номер"),
-                LocalDate.parse(dataMap.get("Дата")),
-                dataMap.get("Пользователь"),
-                dataMap.get("Контрагент"),
-                new BigDecimal(dataMap.get("Сумма")),
-                dataMap.get("Валюта"),
-                new BigDecimal(dataMap.get("Курс Валюты")),
-                new BigDecimal(dataMap.get("Комиссия"))
+                Integer.parseInt(data[1]),
+                data[2],
+                LocalDate.parse(data[3]),
+                data[4],
+                data[5],
+                new BigDecimal(data[6]),
+                data[7],
+                new BigDecimal(data[8]),
+                new BigDecimal(data[9])
         );
     }
+
 
     @FXML
     private void handleViewAction(ActionEvent event) {
-        DisplayableDocument selectedDocument = documentListView.getSelectionModel().getSelectedItem();
-        if (selectedDocument != null) {
-            showDocumentDetails(selectedDocument);
-        } else {
-            showAlert("Просмотр деталей", "Документ не выбран", Alert.AlertType.WARNING);
-        }
-    }
-
-    private void showDocumentDetails(DisplayableDocument document) {
-        try {
-            FXMLLoader loader = new FXMLLoader(getClass().getResource("/view/documentDetails.fxml"));
-            loader.setControllerFactory(context::getBean);
-            Parent root = loader.load();
-
-            DocumentDetailsController controller = loader.getController();
-            controller.setCurrentDocument(document);
-
-            Stage detailsStage = new Stage();
-            detailsStage.setTitle(document.getDisplayText());
-            detailsStage.setScene(new Scene(root));
-            detailsStage.showAndWait();
-
-        } catch (IOException e) {
-            e.printStackTrace();
-            showAlert("Ошибка", "Не удалось загрузить окно деталей документа", Alert.AlertType.ERROR);
-        }
+        loadWindow("/documentDetails.fxml", "Детали документа");
     }
 
     @FXML
@@ -368,27 +233,15 @@ public class MainWindowController implements DocumentCreationListener {
         cancel(event);
     }
 
-    @FXML
-    private void handleDeleteAction(ActionEvent event) {
-        List<DisplayableDocument> selectedDocuments = new ArrayList<>(documentListView.getSelectionModel().getSelectedItems());
-        documentListController.removeDocuments(selectedDocuments);
-    }
-
     private void loadWindow(String path, String title) {
         try {
             FXMLLoader loader = new FXMLLoader(getClass().getResource(path));
             loader.setControllerFactory(context::getBean);
             Parent root = loader.load();
-            Object controller = loader.getController();
-            if (controller instanceof DocumentCreationListenerAware) {
-                ((DocumentCreationListenerAware) controller).setCreationListener(this);
-            }
-
             Stage stage = new Stage();
             stage.setTitle(title);
             stage.setScene(new Scene(root));
             stage.show();
-
         } catch (IOException e) {
             e.printStackTrace();
         }

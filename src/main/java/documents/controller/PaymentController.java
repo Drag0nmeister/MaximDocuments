@@ -1,5 +1,7 @@
 package documents.controller;
 
+import documents.listener.DocumentCreationListener;
+import documents.listener.DocumentCreationListenerAware;
 import jakarta.annotation.PostConstruct;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
@@ -28,8 +30,8 @@ import java.util.Scanner;
 @Component
 @Scope("prototype")
 @FxmlView("payment.fxml")
-public class PaymentController {
-
+public class PaymentController implements DocumentCreationListenerAware {
+    private DocumentCreationListener creationListener;
     @FXML
     private TextField numberField;
     @FXML
@@ -57,6 +59,9 @@ public class PaymentController {
         loadAllPayments();
     }
 
+    public void setCreationListener(DocumentCreationListener listener) {
+        this.creationListener = listener;
+    }
     private void loadAllPayments() {
         List<Payment> payments = paymentService.getAllPayments();
         payments.forEach(payment ->
@@ -76,6 +81,9 @@ public class PaymentController {
 
             payment = paymentService.createPayment(payment);
 
+            if (this.creationListener != null) {
+                this.creationListener.onDocumentCreated(payment);
+            }
             // Добавляем созданный платеж в список документов в главном меню
             documentListController.addDocument(payment);
 

@@ -1,5 +1,7 @@
 package documents.controller;
 
+import documents.listener.DocumentCreationListener;
+import documents.listener.DocumentCreationListenerAware;
 import documents.service.InvoiceService;
 import documents.service.PaymentOrderService;
 import documents.service.PaymentService;
@@ -32,7 +34,7 @@ import java.util.List;
 
 @Component
 @Scope("prototype")
-public class MainWindowController {
+public class MainWindowController implements DocumentCreationListener {
 
     @Autowired
     private final ConfigurableApplicationContext context;
@@ -71,8 +73,16 @@ public class MainWindowController {
     public void initialize() {
         setupDocumentListView();
     }
+
+    @Override
+    public void onDocumentCreated(DisplayableDocument document) {
+        Platform.runLater(() -> {
+            documentListView.getItems().add(document);
+            documentListView.getSelectionModel().select(document);
+        });
+    }
+
     private void loadDocuments() {
-        // Получение документов через слой сервисов
         List<DisplayableDocument> invoices = new ArrayList<>(invoiceService.getAllInvoices());
         List<DisplayableDocument> paymentOrders = new ArrayList<>(paymentOrderService.getAllPaymentOrders());
         List<DisplayableDocument> payments = new ArrayList<>(paymentService.getAllPayments());
@@ -83,6 +93,7 @@ public class MainWindowController {
 
         documentListView.getItems().setAll(allDocuments);
     }
+
     private void displayDocumentDetails(DisplayableDocument document) {
         if (documentDetailsController != null) {
             documentDetailsController.setCurrentDocument(document);
@@ -296,10 +307,16 @@ public class MainWindowController {
             FXMLLoader loader = new FXMLLoader(getClass().getResource(path));
             loader.setControllerFactory(context::getBean);
             Parent root = loader.load();
+            Object controller = loader.getController();
+            if (controller instanceof DocumentCreationListenerAware) {
+                ((DocumentCreationListenerAware) controller).setCreationListener(this);
+            }
+
             Stage stage = new Stage();
             stage.setTitle(title);
             stage.setScene(new Scene(root));
             stage.show();
+
         } catch (IOException e) {
             e.printStackTrace();
         }

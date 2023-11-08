@@ -27,7 +27,7 @@ import java.util.Scanner;
 
 @Component
 @Scope("prototype")
-@FxmlView("view/paymentOrder.fxml")
+@FxmlView("paymentOrder.fxml")
 public class PaymentOrderController implements DocumentCreationListenerAware {
 
 

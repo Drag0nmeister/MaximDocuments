@@ -26,7 +26,11 @@ import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Component;
 
-import java.io.*;
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileReader;
+import java.io.FileWriter;
+import java.io.IOException;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.ArrayList;
@@ -112,13 +116,15 @@ public class MainWindowController implements DocumentCreationListener {
                 }
             }
         });
+
         documentListView.getSelectionModel().selectedItemProperty().addListener(
                 (observable, oldValue, newValue) -> {
                     if (newValue != null) {
+                        currentDocument = newValue;
                         displayDocumentDetails(newValue);
                     }
-                }
-        );
+                });
+
         loadDocuments();
     }
 
@@ -169,45 +175,37 @@ public class MainWindowController implements DocumentCreationListener {
 
 
     private String convertInvoiceToString(Invoice invoice) {
-        return String.format(
-                "Invoice,%s,%s,%s,%s,%s,%s,%s,%s%n",
-                invoice.getId(),
-                invoice.getNumber(),
-                invoice.getDate(),
-                invoice.getUser(),
-                invoice.getAmount(),
-                invoice.getCurrency(),
-                invoice.getCurrencyRate(),
-                invoice.getProduct(),
-                invoice.getQuantity()
-        );
+        return "ID: " + invoice.getId() + "\n" +
+                "Номер: " + invoice.getNumber() + "\n" +
+                "Дата: " + invoice.getDate().toString() + "\n" +
+                "Пользователь: " + invoice.getUser() + "\n" +
+                "Сумма: " + invoice.getAmount() + "\n" +
+                "Валюта: " + invoice.getCurrency() + "\n" +
+                "Курс валюты: " + invoice.getCurrencyRate() + "\n" +
+                "Товар: " + invoice.getProduct() + "\n" +
+                "Количество: " + invoice.getQuantity() + "\n";
     }
 
     private String convertPaymentToString(Payment payment) {
-        return String.format(
-                "Payment,%s,%s,%s,%s,%s,%s%n",
-                payment.getId(),
-                payment.getNumber(),
-                payment.getDate(),
-                payment.getUser(),
-                payment.getAmount(),
-                payment.getEmployee()
-        );
+        return "ID: " + payment.getId() + "\n" +
+                "Номер: " + payment.getNumber() + "\n" +
+                "Дата: " + payment.getDate().toString() + "\n" +
+                "Пользователь: " + payment.getUser() + "\n" +
+                "Сумма: " + payment.getAmount() + "\n" +
+                "Сотрудник: " + payment.getEmployee() + "\n";
     }
 
+
     private String convertPaymentOrderToString(PaymentOrder paymentOrder) {
-        return String.format(
-                "PaymentOrder,%s,%s,%s,%s,%s,%s,%s,%s,%s%n",
-                paymentOrder.getId(),
-                paymentOrder.getNumber(),
-                paymentOrder.getDate(),
-                paymentOrder.getUser(),
-                paymentOrder.getContractor(),
-                paymentOrder.getAmount(),
-                paymentOrder.getCurrency(),
-                paymentOrder.getCurrencyRate(),
-                paymentOrder.getCommission()
-        );
+        return "ID: " + paymentOrder.getId() + "\n" +
+                "Номер: " + paymentOrder.getNumber() + "\n" +
+                "Дата: " + paymentOrder.getDate().toString() + "\n" +
+                "Пользователь: " + paymentOrder.getUser() + "\n" +
+                "Контрагент: " + paymentOrder.getContractor() + "\n" +
+                "Сумма: " + paymentOrder.getAmount() + "\n" +
+                "Валюта: " + paymentOrder.getCurrency() + "\n" +
+                "Курс Валюты: " + paymentOrder.getCurrencyRate() + "\n" +
+                "Комиссия: " + paymentOrder.getCommission() + "\n";
     }
 
     @FXML
@@ -294,7 +292,32 @@ public class MainWindowController implements DocumentCreationListener {
 
     @FXML
     private void handleViewAction(ActionEvent event) {
-        loadWindow("/documentDetails.fxml", "Детали документа");
+        DisplayableDocument selectedDocument = documentListView.getSelectionModel().getSelectedItem();
+        if (selectedDocument != null) {
+            showDocumentDetails(selectedDocument);
+        } else {
+            showAlert("Просмотр деталей", "Документ не выбран", Alert.AlertType.WARNING);
+        }
+    }
+
+    private void showDocumentDetails(DisplayableDocument document) {
+        try {
+            FXMLLoader loader = new FXMLLoader(getClass().getResource("/documentDetails.fxml"));
+            loader.setControllerFactory(context::getBean);
+            Parent root = loader.load();
+
+            DocumentDetailsController controller = loader.getController();
+            controller.setCurrentDocument(document);
+
+            Stage detailsStage = new Stage();
+            detailsStage.setTitle(document.getDisplayText());
+            detailsStage.setScene(new Scene(root));
+            detailsStage.showAndWait();
+
+        } catch (IOException e) {
+            e.printStackTrace();
+            showAlert("Ошибка", "Не удалось загрузить окно деталей документа", Alert.AlertType.ERROR);
+        }
     }
 
     @FXML

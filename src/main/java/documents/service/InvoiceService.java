@@ -68,9 +68,4 @@ public class InvoiceService {
             throw new ServiceOperationException("Ошибка при чтении накладной из файла: " + filename, e);
         }
     }
-
-    @Transactional
-    public void saveInvoice(Invoice invoice) {
-        invoiceRepository.save(invoice);
-    }
 }

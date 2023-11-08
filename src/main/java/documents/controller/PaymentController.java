@@ -31,7 +31,7 @@ import java.util.Scanner;
 @Scope("prototype")
 @FxmlView("payment.fxml")
 public class PaymentController implements DocumentCreationListenerAware {
-    private DocumentCreationListener creationListener;
+
     @FXML
     private TextField numberField;
     @FXML
@@ -47,6 +47,7 @@ public class PaymentController implements DocumentCreationListenerAware {
     @FXML
     private Button okButton;
 
+    private DocumentCreationListener creationListener;
     @Autowired
     private DocumentListController documentListController;
     @Autowired
@@ -62,10 +63,12 @@ public class PaymentController implements DocumentCreationListenerAware {
     public void setCreationListener(DocumentCreationListener listener) {
         this.creationListener = listener;
     }
+
     private void loadAllPayments() {
         List<Payment> payments = paymentService.getAllPayments();
         payments.forEach(payment ->
                 documentListController.addDocument(payment));
+
     }
 
     @FXML
@@ -84,10 +87,8 @@ public class PaymentController implements DocumentCreationListenerAware {
             if (this.creationListener != null) {
                 this.creationListener.onDocumentCreated(payment);
             }
-            // Добавляем созданный платеж в список документов в главном меню
             documentListController.addDocument(payment);
 
-            // Получаем текущее окно и закрываем его
             Stage stage = (Stage) okButton.getScene().getWindow();
             stage.close();
 
@@ -106,7 +107,8 @@ public class PaymentController implements DocumentCreationListenerAware {
     }
 
     private String formatPaymentDisplayName(Payment payment) {
-        return String.format("%s - %s", payment.getId(), payment.getDate().format(DateTimeFormatter.ISO_DATE));
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd.MM.yyyy");
+        return String.format("Платежка от %s номер %s", payment.getDate().format(formatter), payment.getNumber());
     }
 
     @FXML

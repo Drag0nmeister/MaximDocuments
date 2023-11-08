@@ -30,7 +30,7 @@ import java.util.Scanner;
 
 @Component
 @Scope("prototype")
-@FxmlView("view/invoice.fxml")
+@FxmlView("invoice.fxml")
 public class InvoiceController implements DocumentCreationListenerAware {
 
     @FXML

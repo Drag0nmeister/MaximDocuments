@@ -6,6 +6,7 @@ import javafx.collections.ObservableList;
 import javafx.fxml.FXML;
 import javafx.scene.control.ListView;
 import documents.model.DisplayableDocument;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Component;
 
@@ -15,12 +16,19 @@ import java.util.List;
 @Scope("prototype")
 public class DocumentListController {
 
+    @Autowired
+    private DocumentDetailsController documentDetailsController;
     @FXML
     private ListView<DisplayableDocument> documentListView;
     private ObservableList<DisplayableDocument> documentList = FXCollections.observableArrayList();
 
     public void initialize() {
         documentListView.setItems(documentList);
+        documentListView.getSelectionModel().selectedItemProperty().addListener((observable, oldValue, newValue) -> {
+            if (newValue != null) {
+                documentDetailsController.setCurrentDocument(newValue);
+            }
+        });
     }
 
     public void updateDocumentListView(List<DisplayableDocument> documents) {

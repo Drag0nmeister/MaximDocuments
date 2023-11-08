@@ -1,4 +1,5 @@
 package documents;
+
 import javafx.application.Application;
 import javafx.application.Platform;
 import javafx.fxml.FXMLLoader;
@@ -31,12 +32,13 @@ public class JavaFxApplication extends Application {
             Parent root = fxmlLoader.load();
             Scene scene = new Scene(root);
             stage.setScene(scene);
-            stage.setTitle("Main Window");
+            stage.setTitle("Документы");
             stage.show();
         } catch (IOException e) {
             e.printStackTrace();
         }
     }
+
     @Override
     public void stop() {
         this.context.close();

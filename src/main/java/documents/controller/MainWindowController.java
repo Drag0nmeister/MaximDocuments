@@ -34,14 +34,17 @@ import java.io.IOException;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 @Component
 @Scope("prototype")
 public class MainWindowController implements DocumentCreationListener {
 
     @Autowired
-    private final ConfigurableApplicationContext context;
+    private ConfigurableApplicationContext context;
     private DisplayableDocument currentDocument;
 
     @Autowired
@@ -175,7 +178,8 @@ public class MainWindowController implements DocumentCreationListener {
 
 
     private String convertInvoiceToString(Invoice invoice) {
-        return "ID: " + invoice.getId() + "\n" +
+        return "Накладная" + "\n" +
+                "ID: " + invoice.getId() + "\n" +
                 "Номер: " + invoice.getNumber() + "\n" +
                 "Дата: " + invoice.getDate().toString() + "\n" +
                 "Пользователь: " + invoice.getUser() + "\n" +
@@ -187,7 +191,8 @@ public class MainWindowController implements DocumentCreationListener {
     }
 
     private String convertPaymentToString(Payment payment) {
-        return "ID: " + payment.getId() + "\n" +
+        return "Платёжка" + "\n" +
+                "ID: " + payment.getId() + "\n" +
                 "Номер: " + payment.getNumber() + "\n" +
                 "Дата: " + payment.getDate().toString() + "\n" +
                 "Пользователь: " + payment.getUser() + "\n" +
@@ -197,7 +202,8 @@ public class MainWindowController implements DocumentCreationListener {
 
 
     private String convertPaymentOrderToString(PaymentOrder paymentOrder) {
-        return "ID: " + paymentOrder.getId() + "\n" +
+        return "Заявка на оплату" + "\n" +
+                "ID: " + paymentOrder.getId() + "\n" +
                 "Номер: " + paymentOrder.getNumber() + "\n" +
                 "Дата: " + paymentOrder.getDate().toString() + "\n" +
                 "Пользователь: " + paymentOrder.getUser() + "\n" +
@@ -222,71 +228,100 @@ public class MainWindowController implements DocumentCreationListener {
 
     private void loadDocumentFromFile(File file) {
         try (BufferedReader reader = new BufferedReader(new FileReader(file))) {
+            StringBuilder blockBuilder = new StringBuilder();
             String line;
             while ((line = reader.readLine()) != null) {
-                DisplayableDocument document = null;
-                if (line.startsWith("Invoice,")) {
-                    document = parseInvoice(line);
-                } else if (line.startsWith("Payment,")) {
-                    document = parsePayment(line);
-                } else if (line.startsWith("PaymentOrder,")) {
-                    document = parsePaymentOrder(line);
-                }
-                if (document != null) {
-                    final DisplayableDocument finalDocument = document;
-                    Platform.runLater(() -> {
-                        documentListController.addDocument(finalDocument);
-                        documentListView.getSelectionModel().select(finalDocument);
-                    });
-                }
+                blockBuilder.append(line).append("\n");
             }
+            String block = blockBuilder.toString();
+            processDocumentBlock(block);
         } catch (IOException e) {
             e.printStackTrace();
         }
     }
 
-    private Invoice parseInvoice(String line) {
-        String[] data = line.split(",");
-        if (!"Invoice".equals(data[0])) return null;
+    private void processDocumentBlock(String block) {
+        String[] lines = block.split("\n");
+        String documentType = lines[0];
+        DisplayableDocument document = null;
+
+        if ("Накладная".equals(documentType)) {
+            document = parseInvoice(block.substring(documentType.length() + 1));
+            if (document != null) {
+                invoiceService.saveInvoice((Invoice) document);
+            }
+        } else if ("Платёжка".equals(documentType)) {
+            document = parsePayment(block.substring(documentType.length() + 1));
+            if (document != null) {
+                paymentService.savePayment((Payment) document);
+            }
+        } else if ("Заявка на оплату".equals(documentType)) {
+            document = parsePaymentOrder(block.substring(documentType.length() + 1));
+            if (document != null) {
+                paymentOrderService.savePaymentOrder((PaymentOrder) document);
+            }
+        }
+        if (document != null) {
+            final DisplayableDocument finalDocument = document;
+            Platform.runLater(() -> {
+                documentListController.addDocument(finalDocument);
+                documentListView.getItems().add(finalDocument);
+                documentListView.getSelectionModel().select(finalDocument);
+            });
+        }
+    }
+
+    private Invoice parseInvoice(String block) {
+        Map<String, String> dataMap = Arrays.stream(block.split("\n"))
+                .map(line -> line.split(": "))
+                .collect(Collectors.toMap(parts -> parts[0].trim(), parts -> parts[1].trim()));
+
         return new Invoice(
-                Integer.parseInt(data[1]),
-                data[2],
-                LocalDate.parse(data[3]),
-                data[4],
-                new BigDecimal(data[5]),
-                data[6],
-                new BigDecimal(data[7]),
-                data[8],
-                new BigDecimal(data[9])
+                Integer.parseInt(dataMap.get("ID")),
+                dataMap.get("Номер"),
+                LocalDate.parse(dataMap.get("Дата")),
+                dataMap.get("Пользователь"),
+                new BigDecimal(dataMap.get("Сумма")),
+                dataMap.get("Валюта"),
+                new BigDecimal(dataMap.get("Курс валюты")),
+                dataMap.get("Товар"),
+                new BigDecimal(dataMap.get("Количество"))
         );
     }
 
-    private Payment parsePayment(String line) {
-        String[] data = line.split(",");
-        if (!"Payment".equals(data[0])) return null;
+    private Payment parsePayment(String block) {
+        Map<String, String> dataMap = Arrays.stream(block.split("\n"))
+                .map(line -> line.split(": "))
+                .collect(Collectors.toMap(parts -> parts[0].trim(), parts -> parts[1].trim()));
+
         return new Payment(
-                Integer.parseInt(data[1]),
-                data[2],
-                LocalDate.parse(data[3]),
-                data[4],
-                new BigDecimal(data[5]),
-                data[6]
+                Integer.parseInt(dataMap.get("ID")),
+                dataMap.get("Номер"),
+                LocalDate.parse(dataMap.get("Дата")),
+                dataMap.get("Пользователь"),
+                new BigDecimal(dataMap.get("Сумма")),
+                dataMap.get("Сотрудник")
         );
     }
 
-    private PaymentOrder parsePaymentOrder(String line) {
-        String[] data = line.split(",");
-        if (!"PaymentOrder".equals(data[0])) return null;
+    private PaymentOrder parsePaymentOrder(String block) {
+        Map<String, String> dataMap = Arrays.stream(block.split("\n"))
+                .map(line -> line.split(": "))
+                .collect(Collectors.toMap(
+                        parts -> parts[0].trim(),
+                        parts -> parts.length > 1 ? parts[1].trim() : null
+                ));
+
         return new PaymentOrder(
-                Integer.parseInt(data[1]),
-                data[2],
-                LocalDate.parse(data[3]),
-                data[4],
-                data[5],
-                new BigDecimal(data[6]),
-                data[7],
-                new BigDecimal(data[8]),
-                new BigDecimal(data[9])
+                Integer.parseInt(dataMap.get("ID")),
+                dataMap.get("Номер"),
+                LocalDate.parse(dataMap.get("Дата")),
+                dataMap.get("Пользователь"),
+                dataMap.get("Контрагент"),
+                new BigDecimal(dataMap.get("Сумма")),
+                dataMap.get("Валюта"),
+                new BigDecimal(dataMap.get("Курс Валюты")),
+                new BigDecimal(dataMap.get("Комиссия"))
         );
     }
 

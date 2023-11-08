@@ -1,5 +1,8 @@
 package documents.controller;
 
+import documents.service.InvoiceService;
+import documents.service.PaymentOrderService;
+import documents.service.PaymentService;
 import javafx.application.Platform;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
@@ -8,6 +11,7 @@ import javafx.scene.Node;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.scene.control.Alert;
+import javafx.scene.control.ListCell;
 import javafx.scene.control.ListView;
 import javafx.stage.FileChooser;
 import javafx.stage.Stage;
@@ -23,6 +27,8 @@ import org.springframework.stereotype.Component;
 import java.io.*;
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.List;
 
 @Component
 @Scope("prototype")
@@ -31,6 +37,14 @@ public class MainWindowController {
     @Autowired
     private final ConfigurableApplicationContext context;
     private DisplayableDocument currentDocument;
+
+    @Autowired
+    private InvoiceService invoiceService;
+    @Autowired
+    private PaymentOrderService paymentOrderService;
+    @Autowired
+    private PaymentService paymentService;
+    private DocumentDetailsController documentDetailsController;
 
     @Autowired
     private DocumentListController documentListController;
@@ -51,6 +65,50 @@ public class MainWindowController {
     @FXML
     private void handlePaymentAction(ActionEvent event) {
         loadWindow("/payment.fxml", "Платеж");
+    }
+
+    @FXML
+    public void initialize() {
+        setupDocumentListView();
+    }
+    private void loadDocuments() {
+        // Получение документов через слой сервисов
+        List<DisplayableDocument> invoices = new ArrayList<>(invoiceService.getAllInvoices());
+        List<DisplayableDocument> paymentOrders = new ArrayList<>(paymentOrderService.getAllPaymentOrders());
+        List<DisplayableDocument> payments = new ArrayList<>(paymentService.getAllPayments());
+        List<DisplayableDocument> allDocuments = new ArrayList<>();
+        allDocuments.addAll(invoices);
+        allDocuments.addAll(paymentOrders);
+        allDocuments.addAll(payments);
+
+        documentListView.getItems().setAll(allDocuments);
+    }
+    private void displayDocumentDetails(DisplayableDocument document) {
+        if (documentDetailsController != null) {
+            documentDetailsController.setCurrentDocument(document);
+        }
+    }
+
+    private void setupDocumentListView() {
+        documentListView.setCellFactory(param -> new ListCell<DisplayableDocument>() {
+            @Override
+            protected void updateItem(DisplayableDocument document, boolean empty) {
+                super.updateItem(document, empty);
+                if (empty || document == null) {
+                    setText(null);
+                } else {
+                    setText(document.getDisplayText());
+                }
+            }
+        });
+        documentListView.getSelectionModel().selectedItemProperty().addListener(
+                (observable, oldValue, newValue) -> {
+                    if (newValue != null) {
+                        displayDocumentDetails(newValue);
+                    }
+                }
+        );
+        loadDocuments();
     }
 
     @FXML

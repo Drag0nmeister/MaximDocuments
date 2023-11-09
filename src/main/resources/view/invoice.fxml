@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+
+<?import javafx.geometry.Insets?>
+<BorderPane xmlns:fx="http://javafx.com/fxml/1" fx:controller="documents.controller.InvoiceController">
+    <center>
+        <GridPane hgap="10" vgap="10" alignment="CENTER">
+            <padding>
+                <Insets top="10" right="20" bottom="10" left="20"/>
+            </padding>
+            <columnConstraints>
+                <ColumnConstraints minWidth="100" hgrow="SOMETIMES"/>
+                <ColumnConstraints minWidth="200" hgrow="ALWAYS"/>
+            </columnConstraints>
+            <rowConstraints>
+                <RowConstraints vgrow="SOMETIMES"/>
+                <RowConstraints vgrow="SOMETIMES"/>
+                <RowConstraints vgrow="SOMETIMES"/>
+                <RowConstraints vgrow="SOMETIMES"/>
+                <RowConstraints vgrow="SOMETIMES"/>
+                <RowConstraints vgrow="SOMETIMES"/>
+                <RowConstraints vgrow="SOMETIMES"/>
+                <RowConstraints vgrow="SOMETIMES"/>
+            </rowConstraints>
+
+            <Label text="Номер:" GridPane.columnIndex="0" GridPane.rowIndex="0"/>
+            <TextField fx:id="numberField" GridPane.columnIndex="1" GridPane.rowIndex="0" GridPane.hgrow="ALWAYS"/>
+
+            <Label text="Дата:" GridPane.columnIndex="0" GridPane.rowIndex="1"/>
+            <DatePicker fx:id="datePicker" GridPane.columnIndex="1" GridPane.rowIndex="1" GridPane.hgrow="ALWAYS"
+                        maxWidth="1.7976931348623157E308"/>
+
+            <Label text="Пользователь:" GridPane.columnIndex="0" GridPane.rowIndex="2"/>
+            <TextField fx:id="userField" GridPane.columnIndex="1" GridPane.rowIndex="2" GridPane.hgrow="ALWAYS"/>
+
+            <Label text="Сумма:" GridPane.columnIndex="0" GridPane.rowIndex="3"/>
+            <TextField fx:id="amountField" GridPane.columnIndex="1" GridPane.rowIndex="3" GridPane.hgrow="ALWAYS"/>
+
+            <Label text="Валюта:" GridPane.columnIndex="0" GridPane.rowIndex="4"/>
+            <TextField fx:id="currencyField" GridPane.columnIndex="1" GridPane.rowIndex="4" GridPane.hgrow="ALWAYS"/>
+
+            <Label text="Курс валюты:" GridPane.columnIndex="0" GridPane.rowIndex="5"/>
+            <TextField fx:id="currencyRateField" GridPane.columnIndex="1" GridPane.rowIndex="5"
+                       GridPane.hgrow="ALWAYS"/>
+
+            <Label text="Продукт:" GridPane.columnIndex="0" GridPane.rowIndex="6"/>
+            <TextField fx:id="productField" GridPane.columnIndex="1" GridPane.rowIndex="6" GridPane.hgrow="ALWAYS"/>
+
+            <Label text="Количество:" GridPane.columnIndex="0" GridPane.rowIndex="7"/>
+            <TextField fx:id="quantityField" GridPane.columnIndex="1" GridPane.rowIndex="7" GridPane.hgrow="ALWAYS"/>
+        </GridPane>
+    </center>
+    <bottom>
+        <HBox spacing="10" alignment="CENTER_RIGHT">
+            <padding>
+                <Insets top="10.0" right="10.0" bottom="10.0" left="10.0"/>
+            </padding>
+            <Button text="Отмена" fx:id="cancelButton" minWidth="150" onAction="#cancel" HBox.hgrow="NEVER"/>
+            <Region HBox.hgrow="ALWAYS"/>
+            <Button text="ОК" fx:id="okButton" minWidth="150" onAction="#createInvoice" HBox.hgrow="NEVER"/>
+        </HBox>
+    </bottom>
+</BorderPane>

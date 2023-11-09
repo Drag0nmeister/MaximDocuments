@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.layout.VBox?>
+<?import javafx.scene.control.ListView?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.control.Button?>
+
+<VBox xmlns="http://javafx.com/javafx"
+      xmlns:fx="http://javafx.com/fxml"
+      alignment="CENTER"
+      spacing="10.0"
+      fx:controller="documents.controller.MainWindowController">
+
+    <padding>
+        <Insets top="10.0" right="10.0" bottom="10.0" left="10.0"/>
+    </padding>
+
+    <HBox spacing="10">
+        <Button text="Счет" onAction="#handleInvoiceAction" HBox.hgrow="ALWAYS" minHeight="20" maxWidth="Infinity"/>
+        <Button text="Платежка" fx:id="paymentButton" onAction="#handlePaymentAction" HBox.hgrow="ALWAYS" minHeight="20"
+                maxWidth="Infinity"/>
+        <Button text="Заказ на оплату" fx:id="paymentOrderButton" onAction="#handlePaymentOrderAction"
+                HBox.hgrow="ALWAYS" minHeight="20" maxWidth="Infinity"/>
+        <Button text="Сохранить" fx:id="saveButton" onAction="#handleSaveAction" HBox.hgrow="ALWAYS" minHeight="20"
+                maxWidth="Infinity"/>
+        <Button text="Загрузить" fx:id="loadButton" onAction="#handleLoadAction" HBox.hgrow="ALWAYS" minHeight="20"
+                maxWidth="Infinity"/>
+        <Button text="Просмотр" fx:id="viewButton" onAction="#handleViewAction" HBox.hgrow="ALWAYS" minHeight="20"
+                maxWidth="Infinity"/>
+    </HBox>
+
+    <ListView fx:id="documentListView" VBox.vgrow="ALWAYS"/>
+
+    <HBox spacing="10" alignment="BOTTOM_RIGHT">
+        <Button text="Выход" fx:id="exitButton" onAction="#handleExitAction" minWidth="150"/>
+    </HBox>
+</VBox>

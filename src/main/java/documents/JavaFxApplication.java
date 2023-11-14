@@ -25,7 +25,7 @@ public class JavaFxApplication extends Application {
 
     @Override
     public void start(Stage stage) {
-        FXMLLoader fxmlLoader = new FXMLLoader(getClass().getResource("/mainWindow.fxml"));
+        FXMLLoader fxmlLoader = new FXMLLoader(getClass().getResource("/view/mainWindow.fxml"));
         fxmlLoader.setControllerFactory(context::getBean);
 
         try {

@@ -16,7 +16,7 @@
     </padding>
 
     <HBox spacing="10">
-        <Button text="Счет" onAction="#handleInvoiceAction" HBox.hgrow="ALWAYS" minHeight="20" maxWidth="Infinity"/>
+        <Button text="Счет" fx:id="invoiceButton"  onAction="#handleInvoiceAction" HBox.hgrow="ALWAYS" minHeight="20" maxWidth="Infinity"/>
         <Button text="Платежка" fx:id="paymentButton" onAction="#handlePaymentAction" HBox.hgrow="ALWAYS" minHeight="20"
                 maxWidth="Infinity"/>
         <Button text="Заказ на оплату" fx:id="paymentOrderButton" onAction="#handlePaymentOrderAction"

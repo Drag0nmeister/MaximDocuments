@@ -2,34 +2,31 @@ package documents.controller;
 
 import documents.listener.DocumentCreationListener;
 import documents.listener.DocumentCreationListenerAware;
-import jakarta.annotation.PostConstruct;
+import documents.service.PaymentOrderProcessingService;
+import javafx.event.ActionEvent;
+import javafx.fxml.FXML;
 import javafx.scene.control.Alert;
 import javafx.scene.control.Button;
 import javafx.scene.control.DatePicker;
 import javafx.scene.control.TextField;
+import javafx.stage.FileChooser;
+import javafx.stage.Stage;
+import documents.model.PaymentOrder;
+import documents.service.PaymentOrderService;
 import net.rgielen.fxweaver.core.FxmlView;
 import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Component;
-import javafx.event.ActionEvent;
-import javafx.fxml.FXML;
-import javafx.stage.FileChooser;
-import javafx.stage.Stage;
-import documents.model.DisplayableDocument;
-import documents.model.PaymentOrder;
-import documents.service.PaymentOrderService;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import java.io.File;
+import java.io.PrintWriter;
 import java.math.BigDecimal;
-import java.time.LocalDate;
-import java.util.List;
 import java.util.Scanner;
 
 @Component
 @Scope("prototype")
 @FxmlView("view/paymentOrder.fxml")
 public class PaymentOrderController implements DocumentCreationListenerAware {
-
 
     @FXML
     private TextField numberField;
@@ -55,29 +52,24 @@ public class PaymentOrderController implements DocumentCreationListenerAware {
     private DocumentCreationListener creationListener;
 
     @Autowired
-    private DocumentListController documentListController;
-
-    @Autowired
     private PaymentOrderService paymentOrderService;
     private final FileChooser fileChooser = new FileChooser();
 
-    @PostConstruct
-    private void initialize() {
-        loadAllPaymentOrders();
-    }
+    @Autowired
+    private PaymentOrderProcessingService paymentOrderProcessingService;
 
+    @Override
     public void setCreationListener(DocumentCreationListener listener) {
         this.creationListener = listener;
     }
 
-    private void loadAllPaymentOrders() {
-        List<PaymentOrder> paymentOrders = paymentOrderService.getAllPaymentOrders();
-        paymentOrders.forEach(paymentOrder ->
-                documentListController.addDocument(paymentOrder));
-    }
-
     @FXML
     private void createPaymentOrder(ActionEvent event) {
+        if (!isValidInput()) {
+            showAlertWithError("Ошибка ввода", "Пожалуйста, проверьте введённые значения.");
+            return;
+        }
+
         try {
             PaymentOrder paymentOrder = PaymentOrder.builder()
                     .number(numberField.getText())
@@ -91,14 +83,30 @@ public class PaymentOrderController implements DocumentCreationListenerAware {
                     .build();
 
             paymentOrder = paymentOrderService.createPaymentOrder(paymentOrder);
-            if (this.creationListener != null) {
-                this.creationListener.onDocumentCreated(paymentOrder);
-            }
-            documentListController.addDocument(paymentOrder);
-            Stage stage = (Stage) okButton.getScene().getWindow();
-            stage.close();
+            notifyDocumentCreation(paymentOrder);
+            closeWindow();
         } catch (NumberFormatException e) {
-            showAlertWithError("Ошибка ввода", "Пожалуйста, проверьте введённые  значения.");
+            showAlertWithError("Ошибка формата числа", "Пожалуйста, проверьте введённые числовые значения.");
+        }
+    }
+
+    private boolean isValidInput() {
+        String namePattern = "[a-zA-Zа-яА-Я ]*";
+        String numberPattern = "\\d+(\\.\\d+)?";
+        return numberField.getText().matches("\\d+") &&
+                datePicker.getValue() != null &&
+                userField.getText().matches(namePattern) &&
+                contractorField.getText().matches(namePattern) &&
+                !amountField.getText().isEmpty() &&
+                amountField.getText().matches(numberPattern) &&
+                currencyField.getText().matches(namePattern) &&
+                currencyRateField.getText().matches(numberPattern) &&
+                commissionField.getText().matches(numberPattern);
+    }
+
+    private void notifyDocumentCreation(PaymentOrder paymentOrder) {
+        if (this.creationListener != null) {
+            this.creationListener.onDocumentCreated(paymentOrder);
         }
     }
 
@@ -111,33 +119,17 @@ public class PaymentOrderController implements DocumentCreationListenerAware {
     }
 
     @FXML
-    private void deleteSelectedPaymentOrder() {
-        DisplayableDocument selected = documentListController.getDocumentListView().getSelectionModel().getSelectedItem();
-        if (selected instanceof PaymentOrder selectedPaymentOrder) {
-            paymentOrderService.deletePaymentOrder(selectedPaymentOrder.getId());
-            documentListController.removeDocument(selectedPaymentOrder);
-        }
-    }
-
-    @FXML
     private void savePaymentOrdersToFile() {
         File file = fileChooser.showSaveDialog(null);
         if (file != null) {
-            List<PaymentOrder> paymentOrders = paymentOrderService.getAllPaymentOrders();
-            paymentOrders.forEach(paymentOrder -> {
-                try {
-                    paymentOrderService.savePaymentOrderToFile(paymentOrder, file.getAbsolutePath());
-                } catch (Exception e) {
-                    showAlertWithError("Ошибка сохранения", "Не удалось сохранить файл: " + e.getMessage());
+            try (PrintWriter writer = new PrintWriter(file)) {
+                for (PaymentOrder paymentOrder : paymentOrderService.getAllPaymentOrders()) {
+                    writer.println(paymentOrderProcessingService.formatPaymentOrderForFile(paymentOrder));
                 }
-            });
+            } catch (Exception e) {
+                showAlertWithError("Ошибка сохранения", "Не удалось сохранить файл: " + e.getMessage());
+            }
         }
-    }
-
-    @FXML
-    private void cancel(ActionEvent event) {
-        Stage stage = (Stage) cancelButton.getScene().getWindow();
-        stage.close();
     }
 
     @FXML
@@ -147,10 +139,12 @@ public class PaymentOrderController implements DocumentCreationListenerAware {
             try (Scanner scanner = new Scanner(file)) {
                 while (scanner.hasNextLine()) {
                     String line = scanner.nextLine();
-                    PaymentOrder paymentOrder = paymentOrderService.loadPaymentOrderFromFile(line);
-                    if (paymentOrder != null) {
+                    try {
+                        PaymentOrder paymentOrder = paymentOrderProcessingService.parsePaymentOrderFromLine(line);
                         paymentOrderService.createPaymentOrder(paymentOrder);
-                        documentListController.addDocument(paymentOrder);
+                        notifyDocumentCreation(paymentOrder);
+                    } catch (IllegalArgumentException e) {
+                        showAlertWithError("Ошибка парсинга", e.getMessage());
                     }
                 }
             } catch (Exception e) {
@@ -159,35 +153,13 @@ public class PaymentOrderController implements DocumentCreationListenerAware {
         }
     }
 
-    private String formatPaymentOrderForFile(PaymentOrder paymentOrder) {
-        return String.join(",",
-                paymentOrder.getNumber(),
-                paymentOrder.getDate().toString(),
-                paymentOrder.getUser(),
-                paymentOrder.getAmount().toString(),
-                paymentOrder.getCurrency(),
-                paymentOrder.getCurrencyRate().toString(),
-                paymentOrder.getContractor(),
-                paymentOrder.getCommission().toString()
-        );
+    @FXML
+    private void cancel(ActionEvent event) {
+        closeWindow();
     }
 
-    private PaymentOrder parsePaymentOrderFromLine(String line) {
-        try {
-            String[] parts = line.split(",");
-            return PaymentOrder.builder()
-                    .number(parts[0])
-                    .date(LocalDate.parse(parts[1]))
-                    .user(parts[2])
-                    .amount(new BigDecimal(parts[3]))
-                    .currency(parts[4])
-                    .currencyRate(new BigDecimal(parts[5]))
-                    .contractor(parts[6])
-                    .commission(new BigDecimal(parts[7]))
-                    .build();
-        } catch (Exception e) {
-            showAlertWithError("Ошибка парсинга", "Не удалось прочитать платежное поручение из строки: " + line);
-            return null;
-        }
+    private void closeWindow() {
+        Stage stage = (Stage) cancelButton.getScene().getWindow();
+        stage.close();
     }
 }
